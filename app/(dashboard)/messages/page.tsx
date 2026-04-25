@@ -24,13 +24,13 @@ export default function Messages() {
   const [activeContact, setActiveContact] = useState(contacts[0]);
 
   return (
-    <div className="h-[calc(100vh-120px)] flex bg-white rounded-[40px] border border-border shadow-sm overflow-hidden">
+    <div className="h-[calc(100vh-120px)] flex bg-white rounded-[40px] shadow-sm overflow-hidden">
       {/* Contact List */}
-      <aside className="w-[360px] border-r border-border flex flex-col">
+      <aside className="w-[360px] flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
         <div className="p-8 pb-4">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-2xl font-bold text-slate-900">Messages</h1>
-            <button className="p-2 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all">
+            <button className="p-2 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 transition-all">
               <MoreHorizontal className="w-5 h-5" />
             </button>
           </div>
@@ -76,7 +76,7 @@ export default function Messages() {
                 </p>
               </div>
               {contact.unread > 0 && (
-                <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-blue-100">
+                <div className="w-5 h-5 bg-[#0B3022] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
                   {contact.unread}
                 </div>
               )}
@@ -87,7 +87,7 @@ export default function Messages() {
 
       {/* Chat Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50/20">
-        <header className="h-20 px-8 border-b border-border flex items-center justify-between bg-white backdrop-blur-md relative z-10">
+        <header className="h-20 px-8 flex items-center justify-between bg-white backdrop-blur-md relative z-10 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="relative">
               <img src={activeContact.avatar} className="w-10 h-10 rounded-xl" />
@@ -136,13 +136,13 @@ export default function Messages() {
         </div>
 
         <div className="p-8 pt-4">
-          <div className="bg-white border border-border rounded-[32px] p-2 flex items-center group shadow-sm focus-within:shadow-md transition-all">
+          <div className="bg-white rounded-[32px] p-2 flex items-center group shadow-sm focus-within:shadow-md transition-all">
             <input 
               type="text" 
               placeholder="Type your message here..." 
               className="flex-1 bg-transparent px-6 py-4 text-sm outline-none font-medium"
             />
-            <button className="w-12 h-12 bg-vibrant rounded-full flex items-center justify-center text-white shadow-lg shadow-purple-100 hover:scale-105 active:scale-95 transition-all">
+            <button className="w-12 h-12 bg-[#0B3022] rounded-full flex items-center justify-center text-white shadow-md hover:bg-[#166534] transition-colors">
               <Send className="w-5 h-5" />
             </button>
           </div>

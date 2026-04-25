@@ -34,7 +34,7 @@ export default function MarketingLayout({
         <div>
           <Link 
             href="/login" 
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full transition-all shadow-md shadow-blue-200"
+            className="px-6 py-2.5 bg-[#0B3022] hover:bg-[#166534] text-white text-sm font-bold rounded-full transition-all shadow-md shadow-[#0B3022]/20"
           >
             Login / Contact us
           </Link>

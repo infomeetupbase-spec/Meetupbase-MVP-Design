@@ -46,13 +46,13 @@ export default function Notifications() {
           <h1 className="text-3xl font-bold text-slate-900">Notifications</h1>
           <p className="text-slate-500 mt-1">Stay updated with your latest collaborations</p>
         </div>
-        <button className="text-sm font-bold text-primary hover:underline flex items-center gap-2">
+        <button className="text-sm font-bold text-[#0B3022] hover:underline flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
           Mark all as read
         </button>
       </div>
 
-      <div className="bg-white rounded-[40px] border border-border shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[40px] shadow-sm overflow-hidden">
         <div className="divide-y divide-slate-50">
           {notifications.map((notif) => (
             <div 
@@ -86,7 +86,7 @@ export default function Notifications() {
                 
                 {notif.type === 'invite' && (
                   <div className="mt-4 flex gap-3">
-                    <button className="px-5 py-2 bg-primary text-white font-bold rounded-xl text-sm hover:scale-105 transition-all">
+                    <button className="px-5 py-2 bg-[#0B3022] text-white font-bold rounded-xl text-sm hover:bg-[#166534] hover:-translate-y-0.5 transition-all shadow-sm">
                       Accept
                     </button>
                     <button className="px-5 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all">

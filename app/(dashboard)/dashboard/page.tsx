@@ -1,176 +1,151 @@
 'use client';
 
+import { useAuthStore } from '@/lib/store';
 import { 
-  Users, 
-  Video, 
-  MessageSquare, 
   TrendingUp, 
-  Plus,
+  Users, 
+  ShieldCheck, 
+  Target, 
   ArrowUpRight,
-  Clock,
-  Calendar
+  Clock
 } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-
+// Mock data matching the layout
 const stats = [
-  { label: 'Active Collabs', value: '12', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
-  { label: 'Pending Invites', value: '5', icon: MessageSquare, color: 'text-orange-500', bg: 'bg-orange-50' },
-  { label: 'Total Views', value: '2.4M', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-  { label: 'Published', value: '34', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
+  { label: 'Collab Trending', value: '24+', sub: 'Categories', icon: TrendingUp, dark: true },
+  { label: 'Total Creators', value: '1.2k', sub: 'Verified', icon: Users, dark: false },
+  { label: 'Secure Deals', value: '14+', sub: 'Active', icon: ShieldCheck, dark: false },
+  { label: 'Success Rate', value: '98%', sub: 'Completed', icon: Target, dark: false },
 ];
 
-const activeCollaborations = [
-  {
-    id: '1',
-    title: 'Modern Tech Setup Unboxing',
-    partner: 'Linus Media Tech',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Linus',
-    status: 'In Progress',
-    deadline: '2 days left',
-    progress: 65,
-  },
-  {
-    id: '2',
-    title: 'AI Productivity Masterclass',
-    partner: 'Ali Abdaal',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ali',
-    status: 'Planning',
-    deadline: '1 week left',
-    progress: 20,
-  },
-  {
-    id: '3',
-    title: 'The Future of Web Dev',
-    partner: 'Fireship',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fireship',
-    status: 'Finalizing',
-    deadline: 'Tomorrow',
-    progress: 90,
-  },
+const topCreators = [
+  { id: 1, name: 'Marques Brownlee', niche: 'Tech Reviewer', img: 'https://images.unsplash.com/photo-1555212697-194d41bbe7f5?q=80&w=400&h=300&fit=crop' },
+  { id: 2, name: 'Sarah Jenkins', niche: 'Lifestyle Vlog', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=400&h=300&fit=crop' },
+  { id: 3, name: 'David Chen', niche: 'Gaming', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&h=300&fit=crop' },
+  { id: 4, name: 'Emma Wilson', niche: 'Education', img: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=400&h=300&fit=crop' },
+  { id: 5, name: 'Alex Rivera', niche: 'Fitness', img: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=400&h=300&fit=crop' },
+  { id: 6, name: 'Mia Wong', niche: 'Finance', img: 'https://images.unsplash.com/photo-1563986768494-4dee2763ff0f?q=80&w=400&h=300&fit=crop' },
 ];
 
-const recentActivity = [
-  { id: 1, text: 'Sent message to Ali Abdaal', time: '2 hours ago', type: 'message' },
-  { id: 2, text: 'Uploaded draft for Tech Unboxing', time: '5 hours ago', type: 'upload' },
-  { id: 3, text: 'New invitation from MKBHD', time: 'Yesterday', type: 'invite' },
+const newsUpdates = [
+  { id: 1, title: 'Structured Collab Programs to Improve Audience Retention', tag: 'Strategy', time: '10 min read', img: 'https://images.unsplash.com/photo-1552581234-26160f608093?q=80&w=150&h=100&fit=crop' },
+  { id: 2, title: 'Comprehensive Approaches to Brand Deals for Long Term Growth', tag: 'Monetization', time: '20 min read', img: 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=150&h=100&fit=crop' },
+  { id: 3, title: 'Improving Overall Video Quality Through Evidence Based Practices', tag: 'Production', time: '15 min read', img: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=150&h=100&fit=crop' },
+  { id: 4, title: 'Understanding YouTube Algorithm Changes This Month', tag: 'Analytics', time: '5 min read', img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=150&h=100&fit=crop' },
 ];
 
-export default function Dashboard() {
+export default function DashboardPage() {
+  const { user } = useAuthStore();
+
   return (
-    <div className="space-y-8 pb-12">
-      {/* Welcome Header */}
-      <section className="relative overflow-hidden bg-vibrant rounded-3xl p-10 text-white">
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold mb-2">Welcome back, Alex! 👋</h1>
-          <p className="text-white/80 text-lg max-w-lg font-medium leading-relaxed">
-            You have <span className="text-white font-bold">3 active collaborations</span> and <span className="text-white font-bold">5 pending invitations</span> today.
-          </p>
-          <div className="mt-8 flex gap-4">
-            <button className="px-6 py-3 bg-white text-primary font-bold rounded-2xl shadow-lg hover:scale-105 transition-all flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              New Collaboration
-            </button>
-            <button className="px-6 py-3 bg-white/20 backdrop-blur-md text-white font-bold rounded-2xl border border-white/30 hover:bg-white/30 transition-all">
-              Explore Creators
-            </button>
-          </div>
-        </div>
-        
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 w-60 h-60 bg-purple-500/20 rounded-full blur-3xl" />
-      </section>
+    <div className="max-w-[1600px] mx-auto pb-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900 mb-1">Welcome Back,</h1>
+        <h2 className="text-3xl font-bold text-slate-900">{user?.name || 'Creator'}</h2>
+      </div>
 
-      {/* Stats Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
+      {/* STATS ROW */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {stats.map((stat, idx) => (
           <div 
-            key={stat.label} 
-            className="bg-white p-6 rounded-3xl border border-border shadow-sm hover:shadow-md transition-shadow group animate-in fade-in slide-in-from-bottom-4 duration-500"
+            key={idx} 
+            className={cn(
+              "p-6 rounded-[24px] shadow-sm flex flex-col justify-between h-[160px] transition-transform hover:-translate-y-1",
+              stat.dark ? "bg-[#0B3022] text-white" : "bg-white text-slate-900"
+            )}
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className={cn("p-3 rounded-2xl", stat.bg)}>
-                <stat.icon className={cn("w-6 h-6", stat.color)} />
+            <div className="flex justify-between items-start">
+              <span className={cn("font-semibold", stat.dark ? "text-white/90" : "text-slate-500")}>
+                {stat.label}
+              </span>
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center",
+                stat.dark ? "bg-[#84CC16] text-[#0B3022]" : "bg-slate-50 text-slate-400 border border-slate-100"
+              )}>
+                <stat.icon className="w-4 h-4" />
               </div>
-              <ArrowUpRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors" />
             </div>
             <div>
-              <p className="text-slate-500 text-sm font-medium">{stat.label}</p>
-              <h3 className="text-3xl font-bold text-slate-900 mt-1">{stat.value}</h3>
+              <div className="text-4xl font-bold mb-1">{stat.value}</div>
+              <div className={cn("text-xs font-medium", stat.dark ? "text-white/60" : "text-slate-400")}>
+                {stat.sub}
+              </div>
             </div>
           </div>
         ))}
-      </section>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Active Collaborations */}
-        <section className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* MAIN CONTENT: TOP CREATORS */}
+        <div className="xl:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">Active Collaborations</h2>
-            <button className="text-sm font-semibold text-primary hover:underline">View all</button>
+            <h3 className="text-xl font-bold text-slate-900">Top Creators</h3>
+            <Link href="/discover" className="text-sm font-semibold text-slate-400 hover:text-slate-600">
+              Show all (12)
+            </Link>
           </div>
-          <div className="space-y-4">
-            {activeCollaborations.map((collab) => (
-              <div key={collab.id} className="bg-white p-5 rounded-3xl border border-border shadow-sm flex items-center gap-6 group hover:border-primary/30 transition-all">
-                <img src={collab.avatar} alt={collab.partner} className="w-16 h-16 rounded-2xl bg-slate-50 object-cover border border-border" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-primary bg-primary/5 px-2 py-0.5 rounded-full">
-                      {collab.status}
-                    </span>
-                    <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {collab.deadline}
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-bold text-slate-900 truncate">{collab.title}</h4>
-                  <p className="text-sm text-slate-500 font-medium">with {collab.partner}</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {topCreators.map((creator) => (
+              <div key={creator.id} className="bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-md transition-shadow group relative">
+                <div className="h-40 w-full overflow-hidden">
+                  <img src={creator.img} alt={creator.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
-                <div className="hidden md:block w-32">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-slate-600">Progress</span>
-                    <span className="text-xs font-bold text-primary">{collab.progress}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-vibrant rounded-full transition-all duration-1000" 
-                      style={{ width: `${collab.progress}%` }} 
-                    />
+                {/* Expand icon on hover */}
+                <div className="absolute top-4 right-4 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ArrowUpRight className="w-4 h-4 text-slate-900" />
+                </div>
+                <div className="p-5">
+                  <h4 className="font-bold text-slate-900 mb-1">{creator.name}</h4>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold px-2 py-1 bg-slate-50 text-slate-500 rounded-md">
+                      {creator.niche}
+                    </span>
+                    <div className="flex -space-x-2">
+                      {[1,2,3].map(i => (
+                        <img key={i} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.id}${i}`} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100" />
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <button className="p-3 rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
-                  <ArrowUpRight className="w-5 h-5" />
-                </button>
               </div>
             ))}
           </div>
-        </section>
+        </div>
 
-        {/* Activity Feed */}
-        <section className="space-y-6">
+        {/* RIGHT SIDEBAR: NEWS UPDATE */}
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">Recent Activity</h2>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-border shadow-sm space-y-6">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex gap-4 relative">
-                <div className="relative z-10 flex-shrink-0 w-10 h-10 bg-slate-50 rounded-xl border border-border flex items-center justify-center">
-                  {activity.type === 'message' && <MessageSquare className="w-5 h-5 text-blue-500" />}
-                  {activity.type === 'upload' && <Video className="w-5 h-5 text-purple-500" />}
-                  {activity.type === 'invite' && <Users className="w-5 h-5 text-orange-500" />}
-                </div>
-                <div className="flex-1 pt-1">
-                  <p className="text-sm font-semibold text-slate-900">{activity.text}</p>
-                  <p className="text-[12px] text-slate-400 mt-0.5 font-medium">{activity.time}</p>
-                </div>
-              </div>
-            ))}
-            <button className="w-full py-3 text-sm font-bold text-slate-500 hover:text-primary transition-colors border-t border-slate-50 pt-6">
-              See complete history
+            <h3 className="text-xl font-bold text-slate-900">News Update</h3>
+            <button className="text-sm font-semibold text-slate-400 hover:text-slate-600">
+              Show all (8)
             </button>
           </div>
-        </section>
+          
+          <div className="space-y-4">
+            {newsUpdates.map((news) => (
+              <div key={news.id} className="flex gap-4 p-3 bg-white rounded-[20px] shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                <img src={news.img} alt={news.title} className="w-24 h-24 rounded-[16px] object-cover" />
+                <div className="flex-1 flex flex-col justify-center py-1 pr-2">
+                  <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 mb-3">
+                    {news.title}
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold px-2 py-1 bg-[#84CC16]/20 text-[#166534] rounded-md">
+                      {news.tag}
+                    </span>
+                    <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                      <Clock className="w-3 h-3" />
+                      {news.time}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

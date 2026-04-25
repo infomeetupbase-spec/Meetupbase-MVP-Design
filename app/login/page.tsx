@@ -68,9 +68,9 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full group mt-8 relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl overflow-hidden transition-transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed shadow-xl shadow-blue-200/50"
+              className="w-full group mt-8 relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#0B3022] text-white font-bold rounded-2xl overflow-hidden transition-transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed shadow-xl shadow-[#0B3022]/20"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 transition-opacity group-hover:opacity-90" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0B3022] to-[#166534] transition-opacity group-hover:opacity-90" />
               <span className="relative z-10 flex items-center gap-2">
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
