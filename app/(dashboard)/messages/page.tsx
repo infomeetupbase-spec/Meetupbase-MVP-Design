@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, MoreHorizontal, Send, Phone, Video, Info, Check, CheckCheck, Image as ImageIcon, Paperclip, Smile, User, Settings, Shield, Bell, Calendar, Clock, CheckCircle2, Coins, Zap, Star, TrendingUp, Award, Eye, ThumbsUp, MessageCircle, ExternalLink, MapPin, Briefcase, FileText, Download } from 'lucide-react';
+import { Search, MoreHorizontal, Send, Phone, Video, Info, Check, CheckCheck, Image as ImageIcon, Paperclip, Smile, User, Settings, Shield, Bell, Calendar, Clock, CheckCircle2, Coins, Zap, Star, TrendingUp, Award, Eye, ThumbsUp, MessageCircle, ExternalLink, MapPin, Briefcase, FileText, Download, AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
