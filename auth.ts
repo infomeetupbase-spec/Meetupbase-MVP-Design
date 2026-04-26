@@ -1,29 +1,27 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
-import Google from "next-auth/providers/google";
+import authConfig from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      authorization: {
-        params: {
-          scope: "openid profile email https://www.googleapis.com/auth/youtube.readonly",
-        },
-      },
-    }),
-  ],
+  session: { strategy: "jwt" },
+  ...authConfig,
   callbacks: {
-    async session({ session, user, token }: any) {
-      if (session.user) {
-        session.user.id = user.id;
+    ...authConfig.callbacks,
+    async jwt({ token, user, account }: any) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }: any) {
+      if (session.user && token.id) {
+        session.user.id = token.id;
         
         // Fetch additional user data from Prisma
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: token.id },
           select: { credits: true, youtubeStats: true },
         });
 
@@ -34,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Add access token from account if available
         const account = await prisma.account.findFirst({
-          where: { userId: user.id, provider: "google" },
+          where: { userId: token.id, provider: "google" },
         });
         
         if (account) {
@@ -43,8 +41,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session;
     },
-  },
-  pages: {
-    signIn: "/login",
   },
 });
