@@ -31,7 +31,7 @@ interface AuthState {
   login: (email: string) => void;
   logout: () => void;
   setUser: (user: AuthState['user']) => void;
-  updateYoutubeStats: (stats: AuthState['user']['youtubeStats']) => void;
+  updateYoutubeStats: (stats: NonNullable<AuthState['user']>['youtubeStats']) => void;
   addCredits: (amount: number) => void;
   deductCredits: (amount: number) => boolean;
 }

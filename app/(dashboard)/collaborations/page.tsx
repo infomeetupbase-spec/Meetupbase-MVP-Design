@@ -81,8 +81,8 @@ export default function Collaborations() {
     }
   };
 
-  const outgoingRequests = collabs.filter(c => c.brandId === session?.user?.id && c.status === 'PENDING');
-  const incomingRequests = collabs.filter(c => c.creatorId === session?.user?.id && c.status === 'PENDING');
+  const outgoingRequests = collabs.filter(c => c.hostId === session?.user?.id && c.status === 'PENDING');
+  const incomingRequests = collabs.filter(c => c.partnerId === session?.user?.id && c.status === 'PENDING');
   const activeProjects = collabs.filter(c => c.status === 'ACCEPTED');
   const completedCollabsList = collabs.filter(c => c.status === 'COMPLETED');
 
@@ -129,7 +129,7 @@ export default function Collaborations() {
           </div>
           <div className="space-y-4">
             {outgoingRequests.map((req) => {
-              const partner = req.creator;
+              const partner = req.partner || { name: 'Unknown', image: null };
               return (
                 <div key={req.id} className="bg-white rounded-[32px] p-6 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between mb-6">
@@ -137,7 +137,7 @@ export default function Collaborations() {
                       <img src={partner.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.name}`} alt={partner.name} className="w-12 h-12 rounded-2xl bg-slate-100" />
                       <div>
                         <h3 className="font-bold text-slate-900">{partner.name}</h3>
-                        <p className="text-xs text-slate-500 font-medium">Sent on {new Date(req.createdAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-slate-500 font-medium">Sent recently</p>
                       </div>
                     </div>
                   </div>
@@ -164,7 +164,7 @@ export default function Collaborations() {
           </div>
           <div className="space-y-4">
             {incomingRequests.map((req) => {
-              const partner = req.brand;
+              const partner = req.host || { name: 'Unknown', image: null };
               return (
                 <div key={req.id} className="bg-white rounded-[32px] p-6 shadow-sm border-l-4 border-l-emerald-500">
                   <div className="flex items-center justify-between mb-6">
@@ -172,7 +172,7 @@ export default function Collaborations() {
                       <img src={partner.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.name}`} alt={partner.name} className="w-12 h-12 rounded-2xl bg-slate-100" />
                       <div>
                         <h3 className="font-bold text-slate-900">{partner.name}</h3>
-                        <p className="text-xs text-slate-500 font-medium">Received {new Date(req.createdAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-slate-500 font-medium">Received recently</p>
                       </div>
                     </div>
                   </div>
@@ -199,7 +199,7 @@ export default function Collaborations() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {activeProjects.map((project) => {
-            const partner = project.brandId === session?.user?.id ? project.creator : project.brand;
+            const partner = project.hostId === session?.user?.id ? project.partner : project.host;
             return (
               <div key={project.id} className="bg-white rounded-[32px] p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-5">

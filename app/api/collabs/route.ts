@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -14,26 +16,23 @@ export async function GET() {
     const collabs = await prisma.collaboration.findMany({
       where: {
         OR: [
-          { brandId: userId },
-          { creatorId: userId },
+          { hostId: userId },
+          { partnerId: userId },
         ],
       },
       include: {
-        brand: {
+        host: {
           select: {
             name: true,
             image: true,
           },
         },
-        creator: {
+        partner: {
           select: {
             name: true,
             image: true,
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
       },
     });
 
@@ -57,8 +56,8 @@ export async function PATCH(req: Request) {
       where: { id: collabId },
       data: { status },
       include: {
-        brand: { select: { name: true, image: true } },
-        creator: { select: { name: true, image: true } },
+        host: { select: { name: true, image: true } },
+        partner: { select: { name: true, image: true } },
       },
     });
 
