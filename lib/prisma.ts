@@ -3,10 +3,16 @@ import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const prismaClientSingleton = () => {
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL is not defined in environment variables!");
+  }
+  
   const pool = new Pool({ 
     connectionString: process.env.DATABASE_URL,
-    ssl: true
+    ssl: true,
+    max: 1 // Optimize for serverless
   });
+  
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 };
