@@ -2,7 +2,8 @@
 
 import { Search, MoreHorizontal, Send, Phone, Video, Info, Check, CheckCheck, Image as ImageIcon, Paperclip, Smile, User, Settings, Shield, Bell, Calendar, Clock, CheckCircle2, Coins, Zap, Star, TrendingUp, Award, Eye, ThumbsUp, MessageCircle, ExternalLink, MapPin, Briefcase, FileText, Download, AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const contacts = [
   { id: '1', name: 'Marques Brownlee', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marques', lastMsg: 'Sounds like a plan for the iPhone 16 review!', time: '2m ago', unread: 2, online: true, role: 'Tech Reviewer' },
@@ -40,11 +41,68 @@ const sharedFiles = [
   { name: 'Thumbnail_Concepts.pdf', size: '8.5 MB', date: 'Oct 15' },
 ];
 
-export default function Messages() {
+function MessagesContent() {
+  const searchParams = useSearchParams();
+  const [localContacts, setLocalContacts] = useState(contacts);
   const [activeContact, setActiveContact] = useState(contacts[0]);
   const [messages, setMessages] = useState(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [showInfo, setShowInfo] = useState(true);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const contactId = searchParams.get('contactId');
+    const name = searchParams.get('name');
+    const avatar = searchParams.get('avatar');
+    const role = searchParams.get('role');
+
+    if (contactId && name) {
+      // Check if contact already exists in the list
+      const existing = localContacts.find(c => c.id === contactId);
+      if (existing) {
+        setActiveContact(existing);
+        setMessages([]);
+      } else {
+        const newContact = {
+          id: contactId,
+          name: name,
+          avatar: avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+          lastMsg: 'Collaboration accepted! Say hello 👋',
+          time: 'Just now',
+          unread: 1,
+          online: true,
+          role: role || 'Creator Partner'
+        };
+        const updated = [newContact, ...localContacts];
+        setLocalContacts(updated);
+        setActiveContact(newContact);
+        setMessages([{
+          id: 1,
+          senderId: contactId,
+          text: `Hi! I accepted your collaboration request. Looking forward to working together! 🎉`,
+          time: 'Just now'
+        }]);
+      }
+    }
+  }, []);
+
+  // Reset messages when switching contacts (sidebar click)
+  const prevContactId = useRef(contacts[0].id);
+  useEffect(() => {
+    if (prevContactId.current === activeContact.id) return;
+    prevContactId.current = activeContact.id;
+    // Don't reset if it was just set by the URL init effect
+    if (activeContact.id === '1') {
+      setMessages(initialMessages);
+    } else if (activeContact.id.startsWith('inc')) {
+      // new collab contact - messages already set by init
+    } else {
+      setMessages([]);
+    }
+  }, [activeContact.id]);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -82,7 +140,7 @@ export default function Messages() {
         </div>
 
         <div className="flex-1 overflow-y-auto no-scrollbar py-4 px-4 space-y-1">
-          {contacts.map((contact) => (
+          {localContacts.map((contact) => (
             <button
               key={contact.id}
               onClick={() => setActiveContact(contact)}
@@ -285,5 +343,13 @@ export default function Messages() {
         </aside>
       )}
     </div>
+  );
+}
+
+export default function Messages() {
+  return (
+    <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400 font-medium">Loading messages...</div>}>
+      <MessagesContent />
+    </Suspense>
   );
 }

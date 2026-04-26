@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { ArrowRight, Video } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('test@example.com');
@@ -11,6 +12,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
   const router = useRouter();
+
+  const handleGoogleLogin = () => {
+    signIn('google', { callbackUrl: '/dashboard' });
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +88,25 @@ export default function LoginPage() {
               </span>
             </button>
           </form>
+
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-100"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-4 text-slate-400 font-bold tracking-widest">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <button 
+              onClick={handleGoogleLogin}
+              className="w-full max-w-[320px] py-4 px-6 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-200 transition-all flex items-center justify-center gap-3 shadow-sm active:scale-[0.98]"
+            >
+              <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-5 h-5" alt="Google" />
+              Sign in with Google
+            </button>
+          </div>
           
           <p className="text-center text-sm font-medium text-slate-400 mt-8">
             Note: Use the pre-filled credentials to test.

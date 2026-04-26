@@ -1,9 +1,9 @@
 'use client';
 
-import { Search, Filter, Star, ArrowRight, Coins, TrendingUp, Award, Users, Zap, Eye, Crown, Flame } from 'lucide-react';
+import { Search, Filter, Star, ArrowRight, Coins, TrendingUp, Award, Users, Zap, Eye, Crown, Flame, Timer, Gavel } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useAuctionStore } from '@/lib/store';
 
 const categories = ['All', 'Health care', 'Environment', 'Security', 'Relationship', 'Purpose', 'Tech', 'Gaming', 'Finance', 'Education', 'Fitness', 'Lifestyle'];
 
@@ -19,14 +19,14 @@ const featuredCreator = {
   avgViews: '8.2M',
 };
 
-const creators = [
+const initialCreators = [
   { id: '1', name: 'Marques Brownlee', handle: '@mkbhd', avatar: 'https://images.unsplash.com/photo-1555212697-194d41bbe7f5?q=80&w=400&h=300&fit=crop', subscribers: '18.5M', niche: 'Tech / Gadgets', rating: 4.9, recentCollabs: 12, isAvailable: true, creditCost: 10 },
   { id: '2', name: 'MrBeast', handle: '@mrbeast', avatar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&h=300&fit=crop', subscribers: '240M', niche: 'Entertainment', rating: 5.0, recentCollabs: 4, isAvailable: false, creditCost: 25 },
-  { id: '3', name: 'Graham Stephan', handle: '@grahamstephan', avatar: 'https://images.unsplash.com/photo-1563986768494-4dee2763ff0f?q=80&w=400&h=300&fit=crop', subscribers: '4.5M', niche: 'Finance', rating: 4.8, recentCollabs: 24, isAvailable: true, creditCost: 5 },
+  { id: '3', name: 'Graham Stephan', handle: '@grahamstephan', avatar: 'https://images.unsplash.com/photo-1563986768494-4dee2763ff0f?q=80&w=400&h=300&fit=crop', subscribers: '4.5M', niche: 'Finance', rating: 4.8, recentCollabs: 24, isAvailable: true, creditCost: 5, biddingEnabled: true, currentBid: 15, startingBid: 5, timeLeft: '12h 45m' },
   { id: '4', name: 'Sarah Jenkins', handle: '@sarahj', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=400&h=300&fit=crop', subscribers: '2.1M', niche: 'Lifestyle', rating: 4.9, recentCollabs: 8, isAvailable: true, creditCost: 5 },
-  { id: '5', name: 'Emma Wilson', handle: '@emmaw', avatar: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=400&h=300&fit=crop', subscribers: '1.2M', niche: 'Education', rating: 4.7, recentCollabs: 15, isAvailable: true, creditCost: 5 },
+  { id: '5', name: 'Emma Wilson', handle: '@emmaw', avatar: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=400&h=300&fit=crop', subscribers: '1.2M', niche: 'Education', rating: 4.7, recentCollabs: 15, isAvailable: true, creditCost: 5, biddingEnabled: true, currentBid: 30, startingBid: 10, timeLeft: '02h 15m' },
   { id: '6', name: 'Alex Rivera', handle: '@alexr', avatar: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=400&h=300&fit=crop', subscribers: '3.4M', niche: 'Fitness', rating: 4.8, recentCollabs: 20, isAvailable: true, creditCost: 10 },
-  { id: '7', name: 'Ali Abdaal', handle: '@aliabdaal', avatar: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=400&h=300&fit=crop', subscribers: '5.8M', niche: 'Productivity', rating: 4.9, recentCollabs: 18, isAvailable: true, creditCost: 10 },
+  { id: '7', name: 'Ali Abdaal', handle: '@aliabdaal', avatar: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=400&h=300&fit=crop', subscribers: '5.8M', niche: 'Productivity', rating: 4.9, recentCollabs: 18, isAvailable: true, creditCost: 10, biddingEnabled: true, currentBid: 120, startingBid: 50, timeLeft: '48h 30m' },
   { id: '8', name: 'Fireship', handle: '@fireship', avatar: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=400&h=300&fit=crop', subscribers: '3.2M', niche: 'Dev / Code', rating: 5.0, recentCollabs: 9, isAvailable: true, creditCost: 10 },
   { id: '9', name: 'Peter McKinnon', handle: '@petermckinnon', avatar: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=400&h=300&fit=crop', subscribers: '6.1M', niche: 'Photography', rating: 4.8, recentCollabs: 14, isAvailable: false, creditCost: 15 },
   { id: '10', name: 'Matt D\'Avella', handle: '@mattdavella', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=400&h=300&fit=crop', subscribers: '4.0M', niche: 'Minimalism', rating: 4.7, recentCollabs: 11, isAvailable: true, creditCost: 10 },
@@ -43,10 +43,50 @@ const risingStars = [
 
 export default function DiscoverPage() {
   const [activeCategory, setActiveCategory] = useState('All');
+  const [creatorList, setCreatorList] = useState(initialCreators);
   const { deductCredits, user } = useAuthStore();
+  const { activeAuctions, placeBid: placeGlobalBid } = useAuctionStore();
+  const [biddingCreator, setBiddingCreator] = useState<any>(null);
+  const [bidForm, setBidForm] = useState({ amount: '', message: '' });
+
+  // Merge initial creators with active auctions from the store
+  const displayedCreators: any[] = [...creatorList];
+  activeAuctions.forEach(auction => {
+    const existingIndex = displayedCreators.findIndex(c => c.id === auction.creatorId);
+    if (existingIndex > -1) {
+      displayedCreators[existingIndex] = {
+        ...displayedCreators[existingIndex],
+        biddingEnabled: true,
+        currentBid: auction.currentBid,
+        timeLeft: auction.endTime,
+        auctionId: auction.id
+      };
+    } else {
+      displayedCreators.push({
+        id: auction.creatorId,
+        name: auction.creatorName,
+        handle: `@${auction.creatorName.toLowerCase().replace(/\s/g, '')}`,
+        avatar: auction.creatorAvatar,
+        subscribers: '1.2M',
+        niche: 'Creator Partner',
+        rating: 5.0,
+        recentCollabs: 5,
+        isAvailable: true,
+        creditCost: 10,
+        biddingEnabled: true,
+        currentBid: auction.currentBid,
+        startingBid: auction.startingBid,
+        timeLeft: auction.endTime,
+        auctionId: auction.id
+      } as any);
+    }
+  });
   
   const handleConnect = (creatorId: string, cost: number) => {
-    if (!user) return;
+    if (!user) {
+      alert("Please log in to connect with creators.");
+      return;
+    }
     if ((user.credits || 0) < cost) {
       alert('Not enough credits. Please buy more connects in your profile.');
       return;
@@ -55,6 +95,44 @@ export default function DiscoverPage() {
       deductCredits(cost);
       alert(`Connection request sent! ${cost} credits deducted.`);
     }
+  };
+
+  const handleBidClick = (creator: typeof initialCreators[0]) => {
+    if (!user) {
+      alert("Please log in to place a bid.");
+      return;
+    }
+    const currentBid = creator.currentBid || 0;
+    setBiddingCreator(creator);
+    setBidForm({ amount: (currentBid + 5).toString(), message: '' });
+  };
+
+  const submitBid = () => {
+    if (!biddingCreator || !user) return;
+    const currentBid = biddingCreator.currentBid || 0;
+    const amount = parseInt(bidForm.amount);
+    
+    if (isNaN(amount) || amount <= currentBid) {
+      alert('Invalid bid. You must bid higher than the current bid.');
+      return;
+    }
+    if ((user.credits || 0) < amount) {
+      alert('Not enough credits to place this bid.');
+      return;
+    }
+    
+    deductCredits(amount);
+    
+    if (biddingCreator.auctionId) {
+      placeGlobalBid(biddingCreator.auctionId, user.id, amount);
+    } else {
+      setCreatorList(prev => prev.map(c => 
+        c.id === biddingCreator.id ? { ...c, currentBid: amount } as typeof initialCreators[0] : c
+      ));
+    }
+
+    setBiddingCreator(null);
+    alert(`Bid of ${amount} Credits placed successfully! Your credits have been updated and the auction has been synchronized.`);
   };
 
   return (
@@ -128,20 +206,41 @@ export default function DiscoverPage() {
 
       {/* Creator Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-        {creators.map((creator) => (
+        {displayedCreators
+          .filter(creator => creator.isAvailable || creator.biddingEnabled)
+          .filter(creator => activeCategory === 'All' || creator.niche.toLowerCase().includes(activeCategory.toLowerCase()))
+          .map((creator) => (
           <div key={creator.id} className="group bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-md transition-shadow relative flex flex-col">
             <div className="h-44 w-full relative overflow-hidden bg-slate-100 p-2 pb-0">
                <img src={creator.avatar} alt={creator.name} className="w-full h-full object-cover rounded-t-[16px] group-hover:scale-105 transition-transform duration-500" />
                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-bold text-slate-900 shadow-sm">
                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {creator.rating}
                </div>
-               {!creator.isAvailable && (
+               {!creator.isAvailable && !creator.biddingEnabled && (
                  <div className="absolute top-4 left-4 bg-red-500/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-white">Unavailable</div>
+               )}
+               {creator.biddingEnabled && (
+                 <div className="absolute top-4 left-4 bg-[#0B3022]/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
+                   <Gavel className="w-3 h-3 text-amber-400" /> Live Auction
+                 </div>
+               )}
+               {creator.biddingEnabled && (
+                 <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-slate-900 flex items-center gap-1 shadow-sm">
+                   <Timer className="w-3 h-3 text-red-500" /> Ends in {creator.timeLeft}
+                 </div>
                )}
             </div>
             <div className="p-5 flex-1 flex flex-col justify-between">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg leading-tight mb-1">{creator.niche.split('/')[0].trim()}</h3>
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="font-bold text-slate-900 text-lg leading-tight">{creator.niche.split('/')[0].trim()}</h3>
+                  {creator.biddingEnabled && (
+                    <div className="text-right">
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Current Bid</p>
+                      <p className="text-sm font-black text-[#0B3022]">{creator.currentBid} Credits</p>
+                    </div>
+                  )}
+                </div>
                 <p className="text-[11px] text-slate-500 font-medium mb-2">{creator.subscribers} subscribers</p>
                 <p className="text-[11px] text-slate-400 font-medium bg-slate-50 inline-block px-2 py-1 rounded">{creator.recentCollabs} recent collabs</p>
               </div>
@@ -155,12 +254,18 @@ export default function DiscoverPage() {
               </div>
             </div>
             <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform bg-white/90 backdrop-blur border-t border-slate-50">
-              <button onClick={() => handleConnect(creator.id, creator.creditCost)} disabled={!creator.isAvailable} className={cn(
-                "w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md",
-                creator.isAvailable ? "bg-[#0B3022] text-white hover:bg-[#166534] shadow-[#0B3022]/20" : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-              )}>
-                {creator.isAvailable ? <>Connect <span className="text-white/60">({creator.creditCost} Credits)</span></> : 'Unavailable'}
-              </button>
+              {creator.biddingEnabled ? (
+                <button onClick={() => handleBidClick(creator)} className="w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md bg-amber-400 text-amber-950 hover:bg-amber-500 shadow-amber-400/20">
+                  <Gavel className="w-4 h-4" /> Place Bid <span className="opacity-60">(&gt;{creator.currentBid})</span>
+                </button>
+              ) : (
+                <button onClick={() => handleConnect(creator.id, creator.creditCost)} disabled={!creator.isAvailable} className={cn(
+                  "w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md",
+                  creator.isAvailable ? "bg-[#0B3022] text-white hover:bg-[#166534] shadow-[#0B3022]/20" : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                )}>
+                  {creator.isAvailable ? <>Connect <span className="text-white/60">({creator.creditCost} Credits)</span></> : 'Unavailable'}
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -219,6 +324,54 @@ export default function DiscoverPage() {
           <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm text-slate-400">12</button>
         </div>
       </div>
+
+      {/* Bidding Modal */}
+      {biddingCreator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Gavel className="w-5 h-5 text-amber-500" /> Place Your Bid
+              </h2>
+              <button onClick={() => setBiddingCreator(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors">✕</button>
+            </div>
+            
+            <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl mb-6">
+              <img src={biddingCreator.avatar} className="w-12 h-12 rounded-xl object-cover shadow-sm" alt={biddingCreator.name} />
+              <div>
+                <p className="font-bold text-slate-900 text-sm">{biddingCreator.name}</p>
+                <p className="text-[11px] text-slate-500 font-medium">Current Highest Bid: <span className="font-bold text-[#0B3022]">{biddingCreator.currentBid} Credits</span></p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-bold text-slate-900 mb-1.5 block">Your Bid Amount (Credits)</label>
+                <input 
+                  type="number" 
+                  value={bidForm.amount}
+                  onChange={e => setBidForm(f => ({ ...f, amount: e.target.value }))}
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 font-bold transition-all text-slate-900"
+                  placeholder="Enter amount..."
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-slate-900 mb-1.5 block">Message to Creator</label>
+                <textarea 
+                  value={bidForm.message}
+                  onChange={e => setBidForm(f => ({ ...f, message: e.target.value }))}
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 font-medium text-sm h-28 resize-none transition-all text-slate-900"
+                  placeholder="Why are you the best fit for this collaboration? Tell them about your idea!"
+                />
+              </div>
+            </div>
+
+            <button onClick={submitBid} className="w-full py-4 mt-8 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black rounded-xl shadow-lg shadow-amber-400/20 transition-all flex items-center justify-center gap-2">
+              <Gavel className="w-5 h-5" /> Confirm Bid
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

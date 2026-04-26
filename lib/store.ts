@@ -21,10 +21,17 @@ interface AuthState {
     avatar: string;
     role: string;
     credits: number;
+    accessToken?: string;
+    youtubeStats?: {
+      subscriberCount: string;
+      viewCount: string;
+      videoCount: string;
+    };
   } | null;
   login: (email: string) => void;
   logout: () => void;
-  setUser: (user: any) => void;
+  setUser: (user: AuthState['user']) => void;
+  updateYoutubeStats: (stats: AuthState['user']['youtubeStats']) => void;
   addCredits: (amount: number) => void;
   deductCredits: (amount: number) => boolean;
 }
@@ -46,6 +53,9 @@ export const useAuthStore = create<AuthState>()(
       }),
       logout: () => set({ isAuthenticated: false, user: null }),
       setUser: (user) => set({ user }),
+      updateYoutubeStats: (stats) => set((state) => ({
+        user: state.user ? { ...state.user, youtubeStats: stats } : null
+      })),
       addCredits: (amount) => set((state) => ({
         user: state.user ? { ...state.user, credits: state.user.credits + amount } : null
       })),
@@ -63,6 +73,50 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+    }
+  )
+);
+
+interface Auction {
+  id: string;
+  creatorId: string;
+  creatorName: string;
+  creatorAvatar: string;
+  startingBid: number;
+  currentBid: number;
+  endTime: string;
+  status: 'active' | 'ended';
+  highestBidderId?: string;
+}
+
+interface AuctionState {
+  activeAuctions: Auction[];
+  startAuction: (auction: Omit<Auction, 'id' | 'status'>) => void;
+  placeBid: (auctionId: string, bidderId: string, amount: number) => void;
+  endAuction: (auctionId: string) => void;
+}
+
+export const useAuctionStore = create<AuctionState>()(
+  persist(
+    (set) => ({
+      activeAuctions: [],
+      startAuction: (auction) => set((state) => ({
+        activeAuctions: [
+          ...state.activeAuctions,
+          { ...auction, id: Math.random().toString(36).substring(7), status: 'active' }
+        ]
+      })),
+      placeBid: (auctionId, bidderId, amount) => set((state) => ({
+        activeAuctions: state.activeAuctions.map((a) =>
+          a.id === auctionId ? { ...a, currentBid: amount, highestBidderId: bidderId } : a
+        )
+      })),
+      endAuction: (auctionId) => set((state) => ({
+        activeAuctions: state.activeAuctions.filter((a) => a.id !== auctionId)
+      })),
+    }),
+    {
+      name: 'auction-storage',
     }
   )
 );

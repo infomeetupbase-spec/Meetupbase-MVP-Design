@@ -3,6 +3,7 @@
 import { Users, Clock, Undo2, Gift, CheckCircle2, XCircle, AlertCircle, Coins, Star, ExternalLink, Calendar, TrendingUp, Target, BarChart3, MessageCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import Link from 'next/link';
 
 const tabs = ['All', 'Pending', 'Active', 'Completed'];
 
@@ -13,8 +14,8 @@ const pendingRequests = [
 ];
 
 const incomingRequests = [
-  { id: 'inc1', senderName: 'Sarah J. (Tech Reviewer)', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', date: '2026-04-25', reward: 4, status: 'new' },
-  { id: 'inc2', senderName: 'Emma Wilson (Education)', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', date: '2026-04-24', reward: 6, status: 'new' },
+  { id: 'inc1', senderName: 'Sarah Jenkins', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', role: 'Tech Reviewer', date: '2026-04-25', reward: 4, status: 'new' },
+  { id: 'inc2', senderName: 'Emma Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', role: 'Education Creator', date: '2026-04-24', reward: 6, status: 'new' },
 ];
 
 const activeProjects = [
@@ -39,6 +40,7 @@ const collabStats = [
 
 export default function Collaborations() {
   const [activeTab, setActiveTab] = useState('All');
+  const [incomingList, setIncomingList] = useState(incomingRequests);
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-10 pb-20">
@@ -119,7 +121,7 @@ export default function Collaborations() {
             <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold">Creator Rewards Active</span>
           </div>
           <div className="space-y-4">
-            {incomingRequests.map((req) => (
+            {incomingList.map((req) => (
               <div key={req.id} className="bg-white rounded-[32px] p-6 shadow-sm border-l-4 border-l-emerald-500">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-4">
@@ -136,14 +138,25 @@ export default function Collaborations() {
                     <p className="text-[9px] font-bold uppercase tracking-tighter opacity-70">Reward share</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button className="py-3 bg-emerald-500 text-white font-bold rounded-2xl text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" /> Accept
-                  </button>
-                  <button className="py-3 bg-slate-50 text-slate-500 font-bold rounded-2xl text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
-                    <XCircle className="w-4 h-4" /> Decline
-                  </button>
-                </div>
+                {req.status === 'accepted' ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    <Link
+                      href={`/messages?contactId=${req.id}&name=${encodeURIComponent(req.senderName)}&avatar=${encodeURIComponent(req.avatar)}&role=${encodeURIComponent(req.role)}`}
+                      className="py-3 bg-[#0B3022] text-white font-bold rounded-2xl text-sm hover:bg-[#166534] transition-colors flex items-center justify-center gap-2 text-center"
+                    >
+                      <MessageCircle className="w-4 h-4" /> Message
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => setIncomingList(prev => prev.map(r => r.id === req.id ? { ...r, status: 'accepted' } : r))} className="py-3 bg-emerald-500 text-white font-bold rounded-2xl text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" /> Accept
+                    </button>
+                    <button onClick={() => setIncomingList(prev => prev.filter(r => r.id !== req.id))} className="py-3 bg-slate-50 text-slate-500 font-bold rounded-2xl text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+                      <XCircle className="w-4 h-4" /> Decline
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

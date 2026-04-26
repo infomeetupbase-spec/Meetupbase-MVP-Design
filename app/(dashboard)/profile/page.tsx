@@ -1,9 +1,12 @@
 'use client';
 
-import { User, Mail, Globe, Video, Camera, AtSign, Edit3, Settings, Shield, Bell, Calendar, Clock, CheckCircle2, Coins, Zap, Star, TrendingUp, Award, Eye, ThumbsUp, MessageCircle, ExternalLink, MapPin, Briefcase } from 'lucide-react';
+import { User, Mail, Globe, Video, Camera, AtSign, Edit3, Settings, Shield, Bell, Calendar, Clock, CheckCircle2, Coins, Zap, Star, TrendingUp, Award, Eye, ThumbsUp, MessageCircle, ExternalLink, MapPin, Briefcase, Gavel, Timer } from 'lucide-react';
 import { useState } from 'react';
-import { useAuthStore } from '@/lib/store';
+import { useAuctionStore } from '@/lib/store';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
+import { useEffect } from 'react';
+import { fetchYouTubeData, formatCount } from '@/lib/youtube';
 
 const recentCollabs = [
   { id: 1, title: 'Budget Build Challenge', partner: 'Linus Tech Tips', date: 'Mar 28', views: '3.2M', rating: 4.9, img: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?q=80&w=300&h=170&fit=crop' },
@@ -29,10 +32,61 @@ const achievements = [
 const skills = ['Video Editing', 'Scripting', 'Thumbnail Design', 'SEO', 'Audio Production', 'Motion Graphics', 'Color Grading', 'Storytelling'];
 
 export default function Profile() {
-  const { user, addCredits } = useAuthStore();
+  const { data: session, update } = useSession();
+  const user = session?.user as any;
   const [isAvailable, setIsAvailable] = useState(true);
   const [availableDates, setAvailableDates] = useState('June 2026 - July 2026');
   const [isBuying, setIsBuying] = useState<number | null>(null);
+
+  useEffect(() => {
+    const getStats = async () => {
+      if (user?.accessToken && !user.youtubeStats) {
+        const stats = await fetchYouTubeData(user.accessToken);
+        if (stats) {
+          // Update session with new stats
+          await update({
+            ...session,
+            user: {
+              ...session?.user,
+              youtubeStats: {
+                subscriberCount: stats.subscriberCount,
+                viewCount: stats.viewCount,
+                videoCount: stats.videoCount,
+              }
+            }
+          });
+        }
+      }
+    };
+    getStats();
+  }, [user?.accessToken, user?.youtubeStats, update, session]);
+
+  // Bidding UI state
+  const [biddingEnabled, setBiddingEnabled] = useState(false);
+  const { startAuction, activeAuctions, endAuction } = useAuctionStore();
+  const [startingBid, setStartingBid] = useState('50');
+
+  const userAuction = activeAuctions.find(a => a.creatorId === user?.id);
+  const auctionActive = !!userAuction;
+  const currentBid = userAuction?.currentBid || 0;
+
+  const handleStartAuction = () => {
+    if (!startingBid || isNaN(Number(startingBid)) || !user) {
+      alert("Please enter a valid starting bid amount.");
+      return;
+    }
+    
+    startAuction({
+      creatorId: user.id,
+      creatorName: user.name,
+      creatorAvatar: user.avatar,
+      startingBid: Number(startingBid),
+      currentBid: Number(startingBid),
+      endTime: '72h'
+    });
+    
+    alert("72-hour Collab Auction started!");
+  };
 
   const handleBuyCredits = (amount: number) => {
     setIsBuying(amount);
@@ -64,7 +118,7 @@ export default function Profile() {
           </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-600">
-              <Video className="w-4 h-4 text-red-500" /> 2.4M Subscribers
+              <Video className="w-4 h-4 text-red-500" /> {user?.youtubeStats ? formatCount(user.youtubeStats.subscriberCount) : '2.4M'} Subscribers
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-600">
               <Globe className="w-4 h-4 text-blue-500" /> tech-alex.com
@@ -270,6 +324,90 @@ export default function Profile() {
                 <option>Long-term (3+ months)</option>
                 <option>Ongoing partnership</option>
               </select>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Collaboration Bidding / Auction */}
+      <section className="bg-white rounded-[40px] p-10 shadow-sm space-y-8 border-2 border-emerald-50">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+              <Gavel className="w-5 h-5 text-amber-500" /> Collaboration Auction
+            </h2>
+            <p className="text-slate-500 text-sm font-medium leading-relaxed">
+              Enable a 72-hour bidding window for your next collaboration slot. Let other creators and brands bid for the opportunity to work with you.
+            </p>
+          </div>
+          
+          {!auctionActive && (
+            <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl shadow-inner shrink-0">
+              <span className={cn("text-sm font-bold px-4 py-2 rounded-xl transition-all", biddingEnabled ? "text-slate-400" : "bg-white text-slate-900 shadow-sm")}>Disabled</span>
+              <button onClick={() => setBiddingEnabled(!biddingEnabled)} className={cn("relative w-14 h-8 rounded-full transition-colors duration-200", biddingEnabled ? "bg-amber-400" : "bg-slate-200")}>
+                <div className={cn("absolute top-1 left-1 bg-white w-6 h-6 rounded-full transition-transform duration-200", biddingEnabled ? "translate-x-6" : "translate-x-0")} />
+              </button>
+              <span className={cn("text-sm font-bold px-4 py-2 rounded-xl transition-all", biddingEnabled ? "bg-white text-amber-600 shadow-sm" : "text-slate-400")}>Enabled</span>
+            </div>
+          )}
+        </div>
+
+        {biddingEnabled && !auctionActive && (
+          <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex flex-col md:flex-row items-end gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="space-y-3 w-full md:w-auto flex-1">
+              <label className="text-sm font-bold text-slate-900">Starting Bid Amount (Credits)</label>
+              <div className="relative">
+                <Coins className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input 
+                  type="number" 
+                  value={startingBid} 
+                  onChange={(e) => setStartingBid(e.target.value)}
+                  className="w-full pl-12 pr-6 py-4 bg-white shadow-sm rounded-2xl outline-none focus:ring-2 focus:ring-amber-400/50 text-slate-900 font-bold transition-all"
+                  placeholder="e.g. 50"
+                />
+              </div>
+            </div>
+            <button onClick={handleStartAuction} className="w-full md:w-auto px-8 py-4 bg-[#0B3022] hover:bg-[#166534] text-white font-bold rounded-2xl shadow-lg shadow-[#0B3022]/20 transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+              <Timer className="w-5 h-5" /> Start 72h Auction
+            </button>
+          </div>
+        )}
+
+        {auctionActive && (
+          <div className="bg-gradient-to-br from-[#0B3022] to-[#166534] rounded-3xl p-8 text-white shadow-xl relative overflow-hidden animate-in zoom-in-95 duration-500">
+            <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="space-y-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-1.5 bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-red-500/30">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> LIVE AUCTION
+                </div>
+                <h3 className="text-4xl font-black">{currentBid} Credits</h3>
+                <p className="text-white/60 font-medium text-sm">Current Highest Bid</p>
+              </div>
+              
+              <div className="flex items-center gap-8">
+                <div className="text-center">
+                  <p className="text-3xl font-black font-mono tracking-wider">71:45:22</p>
+                  <p className="text-white/60 font-medium text-xs mt-1 uppercase tracking-widest">Time Remaining</p>
+                </div>
+                <div className="h-12 w-px bg-white/20 hidden md:block" />
+                <div className="hidden md:flex flex-col space-y-3">
+                  <p className="text-xs font-bold text-white/80 uppercase tracking-wider">Recent Bidders</p>
+                  <div className="flex -space-x-3">
+                    {['2', '8', '4'].map(id => (
+                      <img key={id} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`} className="w-10 h-10 rounded-full border-2 border-[#166534] bg-[#0B3022]" alt="bidder" />
+                    ))}
+                    <div className="w-10 h-10 rounded-full border-2 border-[#166534] bg-white/10 flex items-center justify-center text-xs font-bold backdrop-blur-sm">+12</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center relative z-10">
+              <p className="text-sm font-medium text-emerald-200">Starting bid was {userAuction?.startingBid} Credits.</p>
+              <button onClick={() => { if (userAuction) endAuction(userAuction.id); setBiddingEnabled(false); }} className="text-sm font-bold text-white/70 hover:text-white transition-colors">
+                End Early
+              </button>
             </div>
           </div>
         )}
