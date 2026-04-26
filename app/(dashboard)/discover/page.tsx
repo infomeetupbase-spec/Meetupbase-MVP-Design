@@ -1,38 +1,26 @@
 'use client';
 
-import { Search, Filter, Star, ArrowRight, Coins, TrendingUp, Award, Users, Zap, Eye, Crown, Flame, Timer, Gavel } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Filter, Star, ArrowRight, Coins, TrendingUp, Award, Users, Zap, Eye, Crown, Flame, Timer, Gavel, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useAuctionStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/store';
+import { getPusherClient } from '@/lib/pusher';
+import { useSession } from 'next-auth/react';
 
-const categories = ['All', 'Health care', 'Environment', 'Security', 'Relationship', 'Purpose', 'Tech', 'Gaming', 'Finance', 'Education', 'Fitness', 'Lifestyle'];
-
-const featuredCreator = {
-  name: 'Marques Brownlee',
-  handle: '@mkbhd',
-  avatar: 'https://images.unsplash.com/photo-1555212697-194d41bbe7f5?q=80&w=800&h=400&fit=crop',
-  subscribers: '18.5M',
-  niche: 'Tech / Gadgets',
-  rating: 4.9,
-  bio: 'Quality tech reviews, unboxing, and deep dives into the latest consumer technology. Known for honest, detailed analysis.',
-  totalCollabs: 156,
-  avgViews: '8.2M',
-};
-
-const initialCreators = [
-  { id: '1', name: 'Marques Brownlee', handle: '@mkbhd', avatar: 'https://images.unsplash.com/photo-1555212697-194d41bbe7f5?q=80&w=400&h=300&fit=crop', subscribers: '18.5M', niche: 'Tech / Gadgets', rating: 4.9, recentCollabs: 12, isAvailable: true, creditCost: 10 },
-  { id: '2', name: 'MrBeast', handle: '@mrbeast', avatar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&h=300&fit=crop', subscribers: '240M', niche: 'Entertainment', rating: 5.0, recentCollabs: 4, isAvailable: false, creditCost: 25 },
-  { id: '3', name: 'Graham Stephan', handle: '@grahamstephan', avatar: 'https://images.unsplash.com/photo-1563986768494-4dee2763ff0f?q=80&w=400&h=300&fit=crop', subscribers: '4.5M', niche: 'Finance', rating: 4.8, recentCollabs: 24, isAvailable: true, creditCost: 5, biddingEnabled: true, currentBid: 15, startingBid: 5, timeLeft: '12h 45m' },
-  { id: '4', name: 'Sarah Jenkins', handle: '@sarahj', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=400&h=300&fit=crop', subscribers: '2.1M', niche: 'Lifestyle', rating: 4.9, recentCollabs: 8, isAvailable: true, creditCost: 5 },
-  { id: '5', name: 'Emma Wilson', handle: '@emmaw', avatar: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=400&h=300&fit=crop', subscribers: '1.2M', niche: 'Education', rating: 4.7, recentCollabs: 15, isAvailable: true, creditCost: 5, biddingEnabled: true, currentBid: 30, startingBid: 10, timeLeft: '02h 15m' },
-  { id: '6', name: 'Alex Rivera', handle: '@alexr', avatar: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=400&h=300&fit=crop', subscribers: '3.4M', niche: 'Fitness', rating: 4.8, recentCollabs: 20, isAvailable: true, creditCost: 10 },
-  { id: '7', name: 'Ali Abdaal', handle: '@aliabdaal', avatar: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=400&h=300&fit=crop', subscribers: '5.8M', niche: 'Productivity', rating: 4.9, recentCollabs: 18, isAvailable: true, creditCost: 10, biddingEnabled: true, currentBid: 120, startingBid: 50, timeLeft: '48h 30m' },
-  { id: '8', name: 'Fireship', handle: '@fireship', avatar: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=400&h=300&fit=crop', subscribers: '3.2M', niche: 'Dev / Code', rating: 5.0, recentCollabs: 9, isAvailable: true, creditCost: 10 },
-  { id: '9', name: 'Peter McKinnon', handle: '@petermckinnon', avatar: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=400&h=300&fit=crop', subscribers: '6.1M', niche: 'Photography', rating: 4.8, recentCollabs: 14, isAvailable: false, creditCost: 15 },
-  { id: '10', name: 'Matt D\'Avella', handle: '@mattdavella', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=400&h=300&fit=crop', subscribers: '4.0M', niche: 'Minimalism', rating: 4.7, recentCollabs: 11, isAvailable: true, creditCost: 10 },
-  { id: '11', name: 'Devin Nash', handle: '@devinnash', avatar: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?q=80&w=400&h=300&fit=crop', subscribers: '800K', niche: 'Marketing', rating: 4.6, recentCollabs: 22, isAvailable: true, creditCost: 5 },
-  { id: '12', name: 'Jessica Kobeissi', handle: '@jessicak', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&h=300&fit=crop', subscribers: '1.9M', niche: 'Photography', rating: 4.8, recentCollabs: 7, isAvailable: true, creditCost: 5 },
-];
+interface Auction {
+  id: string;
+  hostId: string;
+  startingBid: number;
+  currentBid: number;
+  endTime: string;
+  status: string;
+  host: {
+    id: string;
+    name: string;
+    image: string | null;
+    role: string | null;
+  };
+}
 
 const risingStars = [
   { name: 'TechLinked', subs: '420K', growth: '+180%', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=TechLinked' },
@@ -41,53 +29,86 @@ const risingStars = [
   { name: 'FitWithMia', subs: '510K', growth: '+95%', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=FitWithMia' },
 ];
 
-export default function DiscoverPage() {
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [creatorList, setCreatorList] = useState(initialCreators);
-  const { deductCredits, user } = useAuthStore();
-  const { activeAuctions, placeBid: placeGlobalBid } = useAuctionStore();
-  const [biddingCreator, setBiddingCreator] = useState<any>(null);
-  const [bidForm, setBidForm] = useState({ amount: '', message: '' });
+const categories = ['All', 'Health care', 'Environment', 'Security', 'Relationship', 'Purpose', 'Tech', 'Gaming', 'Finance', 'Education', 'Fitness', 'Lifestyle'];
 
-  // Merge initial creators with active auctions from the store
-  const displayedCreators: any[] = [...creatorList];
-  activeAuctions.forEach(auction => {
-    const existingIndex = displayedCreators.findIndex(c => c.id === auction.creatorId);
-    if (existingIndex > -1) {
-      displayedCreators[existingIndex] = {
-        ...displayedCreators[existingIndex],
-        biddingEnabled: true,
-        currentBid: auction.currentBid,
-        timeLeft: auction.endTime,
-        auctionId: auction.id
+export default function DiscoverPage() {
+  const { data: session } = useSession();
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const { deductCredits, user } = useAuthStore();
+  const [biddingAuction, setBiddingAuction] = useState<Auction | null>(null);
+  const [bidForm, setBidForm] = useState({ amount: '', message: '' });
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [timeLeft, setTimeLeft] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const newTimeLeft: Record<string, string> = {};
+      auctions.forEach(auction => {
+        newTimeLeft[auction.id] = getTimeRemaining(auction.endTime);
+      });
+      setTimeLeft(newTimeLeft);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [auctions]);
+
+  function getTimeRemaining(endTime: string) {
+    const total = Date.parse(endTime) - Date.now();
+    if (total <= 0) return 'Expired';
+    const seconds = Math.floor((total / 1000) % 60);
+    const minutes = Math.floor((total / 1000 / 60) % 60);
+    const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
+    const days = Math.floor(total / (1000 * 60 * 60 * 24));
+
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  useEffect(() => {
+    fetchAuctions();
+  }, []);
+
+  useEffect(() => {
+    if (auctions.length > 0) {
+      const pusher = getPusherClient();
+      const channels = auctions.map(a => pusher.subscribe(`auction-${a.id}`));
+
+      channels.forEach(channel => {
+        channel.bind("new-bid", (data: { auctionId: string, amount: number }) => {
+          setAuctions(prev => prev.map(a => 
+            a.id === data.auctionId ? { ...a, currentBid: data.amount } : a
+          ));
+        });
+      });
+
+      return () => {
+        auctions.forEach(a => pusher.unsubscribe(`auction-${a.id}`));
       };
-    } else {
-      displayedCreators.push({
-        id: auction.creatorId,
-        name: auction.creatorName,
-        handle: `@${auction.creatorName.toLowerCase().replace(/\s/g, '')}`,
-        avatar: auction.creatorAvatar,
-        subscribers: '1.2M',
-        niche: 'Creator Partner',
-        rating: 5.0,
-        recentCollabs: 5,
-        isAvailable: true,
-        creditCost: 10,
-        biddingEnabled: true,
-        currentBid: auction.currentBid,
-        startingBid: auction.startingBid,
-        timeLeft: auction.endTime,
-        auctionId: auction.id
-      } as any);
     }
-  });
+  }, [auctions.length]);
+
+  const fetchAuctions = async () => {
+    try {
+      const res = await fetch("/api/auctions");
+      if (res.ok) {
+        const data = await res.json();
+        setAuctions(data);
+      }
+    } catch (error) {
+      console.error("Error fetching auctions:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleConnect = (creatorId: string, cost: number) => {
-    if (!user) {
+    if (!session) {
       alert("Please log in to connect with creators.");
       return;
     }
-    if ((user.credits || 0) < cost) {
+    if ((user?.credits || 0) < cost) {
       alert('Not enough credits. Please buy more connects in your profile.');
       return;
     }
@@ -97,42 +118,48 @@ export default function DiscoverPage() {
     }
   };
 
-  const handleBidClick = (creator: typeof initialCreators[0]) => {
-    if (!user) {
+  const handleBidClick = (auction: Auction) => {
+    if (!session) {
       alert("Please log in to place a bid.");
       return;
     }
-    const currentBid = creator.currentBid || 0;
-    setBiddingCreator(creator);
-    setBidForm({ amount: (currentBid + 5).toString(), message: '' });
+    setBiddingAuction(auction);
+    setBidForm({ amount: (auction.currentBid + 5).toString(), message: '' });
   };
 
-  const submitBid = () => {
-    if (!biddingCreator || !user) return;
-    const currentBid = biddingCreator.currentBid || 0;
+  const submitBid = async () => {
+    if (!biddingAuction || !session) return;
     const amount = parseInt(bidForm.amount);
     
-    if (isNaN(amount) || amount <= currentBid) {
+    if (isNaN(amount) || amount <= biddingAuction.currentBid) {
       alert('Invalid bid. You must bid higher than the current bid.');
       return;
     }
-    if ((user.credits || 0) < amount) {
-      alert('Not enough credits to place this bid.');
-      return;
-    }
     
-    deductCredits(amount);
-    
-    if (biddingCreator.auctionId) {
-      placeGlobalBid(biddingCreator.auctionId, user.id, amount);
-    } else {
-      setCreatorList(prev => prev.map(c => 
-        c.id === biddingCreator.id ? { ...c, currentBid: amount } as typeof initialCreators[0] : c
-      ));
-    }
+    try {
+      const res = await fetch("/api/auctions/bid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auctionId: biddingAuction.id,
+          amount,
+          message: bidForm.message,
+        }),
+      });
 
-    setBiddingCreator(null);
-    alert(`Bid of ${amount} Credits placed successfully! Your credits have been updated and the auction has been synchronized.`);
+      if (res.ok) {
+        const data = await res.json();
+        deductCredits(amount);
+        setBiddingAuction(null);
+        alert(`Bid of ${amount} Credits placed successfully!`);
+        fetchAuctions(); // Refresh to get latest state
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to place bid");
+      }
+    } catch (error) {
+      console.error("Error placing bid:", error);
+    }
   };
 
   return (
@@ -147,7 +174,13 @@ export default function DiscoverPage() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input type="text" placeholder="Search by name or niche..." className="pl-10 pr-4 py-2 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-[#0B3022]/20 outline-none w-[240px] transition-all" />
+            <input 
+              type="text" 
+              placeholder="Search by name or niche..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-[#0B3022]/20 outline-none w-[240px] transition-all" 
+            />
           </div>
           <button className="p-2 bg-white shadow-sm rounded-xl hover:bg-slate-50 transition-colors">
             <Filter className="w-5 h-5 text-slate-500" />
@@ -155,41 +188,33 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      {/* Featured Creator */}
+      {/* Featured Creator Placeholder */}
       <div className="bg-white rounded-[32px] overflow-hidden shadow-sm mb-10 group">
         <div className="relative h-56 overflow-hidden">
-          <img src={featuredCreator.avatar} alt={featuredCreator.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <img src="https://images.unsplash.com/photo-1555212697-194d41bbe7f5?q=80&w=800&h=400&fit=crop" alt="Featured" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute top-4 left-4">
             <span className="bg-amber-400 text-amber-900 text-xs font-black px-3 py-1.5 rounded-full flex items-center gap-1">
-              <Crown className="w-3 h-3" /> Featured Creator
+              <Crown className="w-3 h-3" /> Featured Auction
             </span>
           </div>
           <div className="absolute bottom-6 left-8 right-8 flex items-end justify-between">
             <div className="text-white">
-              <h2 className="text-2xl font-bold">{featuredCreator.name}</h2>
-              <p className="text-white/70 text-sm font-medium">{featuredCreator.handle} · {featuredCreator.niche}</p>
+              <h2 className="text-2xl font-bold">Marques Brownlee</h2>
+              <p className="text-white/70 text-sm font-medium">@mkbhd · Tech / Gadgets</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-center text-white">
-                <p className="text-lg font-black">{featuredCreator.subscribers}</p>
+                <p className="text-lg font-black">18.5M</p>
                 <p className="text-[10px] text-white/60 font-medium">Subscribers</p>
-              </div>
-              <div className="text-center text-white">
-                <p className="text-lg font-black">{featuredCreator.totalCollabs}</p>
-                <p className="text-[10px] text-white/60 font-medium">Collabs</p>
-              </div>
-              <div className="text-center text-white">
-                <p className="text-lg font-black">{featuredCreator.avgViews}</p>
-                <p className="text-[10px] text-white/60 font-medium">Avg Views</p>
               </div>
             </div>
           </div>
         </div>
         <div className="p-6 flex items-center justify-between">
-          <p className="text-slate-500 font-medium text-sm max-w-xl">{featuredCreator.bio}</p>
-          <button onClick={() => handleConnect('1', 10)} className="px-6 py-3 bg-[#0B3022] text-white font-bold rounded-xl hover:bg-[#166534] transition-colors shadow-md shadow-[#0B3022]/20 flex items-center gap-2 whitespace-nowrap">
-            Connect <span className="text-white/60">(10 Credits)</span>
+          <p className="text-slate-500 font-medium text-sm max-max-w-xl">Quality tech reviews and deep dives into the latest consumer technology.</p>
+          <button className="px-6 py-3 bg-[#0B3022] text-white font-bold rounded-xl hover:bg-[#166534] transition-colors shadow-md shadow-[#0B3022]/20 flex items-center gap-2 whitespace-nowrap">
+            View Auction
           </button>
         </div>
       </div>
@@ -204,68 +229,53 @@ export default function DiscoverPage() {
         ))}
       </div>
 
-      {/* Creator Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-        {displayedCreators
-          .filter(creator => creator.isAvailable || creator.biddingEnabled)
-          .filter(creator => activeCategory === 'All' || creator.niche.toLowerCase().includes(activeCategory.toLowerCase()))
-          .map((creator) => (
-          <div key={creator.id} className="group bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-md transition-shadow relative flex flex-col">
+        {auctions
+          .filter(auction => {
+            const matchesCategory = activeCategory === 'All' || auction.host.role?.toLowerCase().includes(activeCategory.toLowerCase());
+            const matchesSearch = auction.host.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                  auction.host.role?.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesCategory && matchesSearch;
+          })
+          .map((auction) => (
+          <div key={auction.id} className="group bg-white rounded-[24px] overflow-hidden shadow-sm hover:shadow-md transition-shadow relative flex flex-col">
             <div className="h-44 w-full relative overflow-hidden bg-slate-100 p-2 pb-0">
-               <img src={creator.avatar} alt={creator.name} className="w-full h-full object-cover rounded-t-[16px] group-hover:scale-105 transition-transform duration-500" />
+               <img src={auction.host.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auction.host.name}`} alt={auction.host.name} className="w-full h-full object-cover rounded-t-[16px] group-hover:scale-105 transition-transform duration-500" />
                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-bold text-slate-900 shadow-sm">
-                 <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {creator.rating}
+                 <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> 4.9
                </div>
-               {!creator.isAvailable && !creator.biddingEnabled && (
-                 <div className="absolute top-4 left-4 bg-red-500/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-white">Unavailable</div>
-               )}
-               {creator.biddingEnabled && (
-                 <div className="absolute top-4 left-4 bg-[#0B3022]/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
-                   <Gavel className="w-3 h-3 text-amber-400" /> Live Auction
-                 </div>
-               )}
-               {creator.biddingEnabled && (
-                 <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-slate-900 flex items-center gap-1 shadow-sm">
-                   <Timer className="w-3 h-3 text-red-500" /> Ends in {creator.timeLeft}
-                 </div>
-               )}
+               <div className="absolute top-4 left-4 bg-[#0B3022]/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
+                 <Gavel className="w-3 h-3 text-amber-400" /> Live Auction
+               </div>
+                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-slate-900 flex items-center gap-1 shadow-sm">
+                  <Timer className="w-3 h-3 text-red-500" /> {timeLeft[auction.id] || 'Calculating...'}
+                </div>
             </div>
             <div className="p-5 flex-1 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-bold text-slate-900 text-lg leading-tight">{creator.niche.split('/')[0].trim()}</h3>
-                  {creator.biddingEnabled && (
-                    <div className="text-right">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Current Bid</p>
-                      <p className="text-sm font-black text-[#0B3022]">{creator.currentBid} Credits</p>
-                    </div>
-                  )}
+                  <h3 className="font-bold text-slate-900 text-lg leading-tight">{auction.host.role || 'Creator'}</h3>
+                  <div className="text-right">
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Current Bid</p>
+                    <p className="text-sm font-black text-[#0B3022]">{auction.currentBid} Credits</p>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium mb-2">{creator.subscribers} subscribers</p>
-                <p className="text-[11px] text-slate-400 font-medium bg-slate-50 inline-block px-2 py-1 rounded">{creator.recentCollabs} recent collabs</p>
+                <p className="text-[11px] text-slate-500 font-medium mb-2">1.2M subscribers</p>
+                <p className="text-[11px] text-slate-400 font-medium bg-slate-50 inline-block px-2 py-1 rounded">12 recent collabs</p>
               </div>
               <div className="flex items-center justify-between mt-4">
-                <span className="text-xs font-semibold px-2 py-1 bg-slate-50 text-slate-500 rounded-md">{creator.name}</span>
+                <span className="text-xs font-semibold px-2 py-1 bg-slate-50 text-slate-500 rounded-md">{auction.host.name}</span>
                 <div className="flex -space-x-2">
                   {[1,2,3].map(i => (
-                    <img key={i} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.id}${i}`} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100" />
+                    <img key={i} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${auction.id}${i}`} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100" />
                   ))}
                 </div>
               </div>
             </div>
             <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform bg-white/90 backdrop-blur border-t border-slate-50">
-              {creator.biddingEnabled ? (
-                <button onClick={() => handleBidClick(creator)} className="w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md bg-amber-400 text-amber-950 hover:bg-amber-500 shadow-amber-400/20">
-                  <Gavel className="w-4 h-4" /> Place Bid <span className="opacity-60">(&gt;{creator.currentBid})</span>
-                </button>
-              ) : (
-                <button onClick={() => handleConnect(creator.id, creator.creditCost)} disabled={!creator.isAvailable} className={cn(
-                  "w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md",
-                  creator.isAvailable ? "bg-[#0B3022] text-white hover:bg-[#166534] shadow-[#0B3022]/20" : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-                )}>
-                  {creator.isAvailable ? <>Connect <span className="text-white/60">({creator.creditCost} Credits)</span></> : 'Unavailable'}
-                </button>
-              )}
+              <button onClick={() => handleBidClick(auction)} className="w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md bg-amber-400 text-amber-950 hover:bg-amber-500 shadow-amber-400/20">
+                <Gavel className="w-4 h-4" /> Place Bid <span className="opacity-60">(&gt;{auction.currentBid})</span>
+              </button>
             </div>
           </div>
         ))}
@@ -326,21 +336,21 @@ export default function DiscoverPage() {
       </div>
 
       {/* Bidding Modal */}
-      {biddingCreator && (
+      {biddingAuction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                 <Gavel className="w-5 h-5 text-amber-500" /> Place Your Bid
               </h2>
-              <button onClick={() => setBiddingCreator(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors">✕</button>
+              <button onClick={() => setBiddingAuction(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors">✕</button>
             </div>
             
             <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl mb-6">
-              <img src={biddingCreator.avatar} className="w-12 h-12 rounded-xl object-cover shadow-sm" alt={biddingCreator.name} />
+              <img src={biddingAuction.host.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${biddingAuction.host.name}`} className="w-12 h-12 rounded-xl object-cover shadow-sm" alt={biddingAuction.host.name} />
               <div>
-                <p className="font-bold text-slate-900 text-sm">{biddingCreator.name}</p>
-                <p className="text-[11px] text-slate-500 font-medium">Current Highest Bid: <span className="font-bold text-[#0B3022]">{biddingCreator.currentBid} Credits</span></p>
+                <p className="font-bold text-slate-900 text-sm">{biddingAuction.host.name}</p>
+                <p className="text-[11px] text-slate-500 font-medium">Current Highest Bid: <span className="font-bold text-[#0B3022]">{biddingAuction.currentBid} Credits</span></p>
               </div>
             </div>
 

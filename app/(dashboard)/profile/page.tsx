@@ -2,11 +2,12 @@
 
 import { User, Mail, Globe, Video, Camera, AtSign, Edit3, Settings, Shield, Bell, Calendar, Clock, CheckCircle2, Coins, Zap, Star, TrendingUp, Award, Eye, ThumbsUp, MessageCircle, ExternalLink, MapPin, Briefcase, Gavel, Timer } from 'lucide-react';
 import { useState } from 'react';
-import { useAuctionStore } from '@/lib/store';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
 import { fetchYouTubeData, formatCount } from '@/lib/youtube';
+import { getPusherClient } from '@/lib/pusher';
+import { useAuthStore } from '@/lib/store';
 
 const recentCollabs = [
   { id: 1, title: 'Budget Build Challenge', partner: 'Linus Tech Tips', date: 'Mar 28', views: '3.2M', rating: 4.9, img: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?q=80&w=300&h=170&fit=crop' },
@@ -37,6 +38,7 @@ export default function Profile() {
   const [isAvailable, setIsAvailable] = useState(true);
   const [availableDates, setAvailableDates] = useState('June 2026 - July 2026');
   const [isBuying, setIsBuying] = useState<number | null>(null);
+  const { addCredits } = useAuthStore();
 
   useEffect(() => {
     const getStats = async () => {
@@ -63,29 +65,103 @@ export default function Profile() {
 
   // Bidding UI state
   const [biddingEnabled, setBiddingEnabled] = useState(false);
-  const { startAuction, activeAuctions, endAuction } = useAuctionStore();
+  const [auctions, setAuctions] = useState<any[]>([]);
   const [startingBid, setStartingBid] = useState('50');
+  const [isLoadingAuctions, setIsLoadingAuctions] = useState(true);
 
-  const userAuction = activeAuctions.find(a => a.creatorId === user?.id);
-  const auctionActive = !!userAuction;
-  const currentBid = userAuction?.currentBid || 0;
+  useEffect(() => {
+    if (user?.id) {
+      fetchMyAuctions();
+    }
+  }, [user?.id]);
 
-  const handleStartAuction = () => {
+  useEffect(() => {
+    if (auctions.length > 0) {
+      const pusher = getPusherClient();
+      const channels = auctions.map(a => pusher.subscribe(`auction-${a.id}`));
+
+      channels.forEach(channel => {
+        channel.bind("new-bid", (data: { auctionId: string, amount: number, bid: any }) => {
+          setAuctions(prev => prev.map(a => 
+            a.id === data.auctionId ? { 
+              ...a, 
+              currentBid: data.amount,
+              bids: [data.bid, ...(a.bids || [])].slice(0, 5)
+            } : a
+          ));
+        });
+      });
+
+      return () => {
+        auctions.forEach(a => pusher.unsubscribe(`auction-${a.id}`));
+      };
+    }
+  }, [auctions.length]);
+
+  const fetchMyAuctions = async () => {
+    try {
+      const res = await fetch("/api/auctions/me");
+      if (res.ok) {
+        const data = await res.json();
+        setAuctions(data);
+      }
+    } catch (error) {
+      console.error("Error fetching my auctions:", error);
+    } finally {
+      setIsLoadingAuctions(false);
+    }
+  };
+
+  const activeAuction = auctions.find(a => a.status === 'ACTIVE');
+
+  const handleStartAuction = async () => {
     if (!startingBid || isNaN(Number(startingBid)) || !user) {
       alert("Please enter a valid starting bid amount.");
       return;
     }
     
-    startAuction({
-      creatorId: user.id,
-      creatorName: user.name,
-      creatorAvatar: user.avatar,
-      startingBid: Number(startingBid),
-      currentBid: Number(startingBid),
-      endTime: '72h'
-    });
+    try {
+      const res = await fetch("/api/auctions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startingBid: Number(startingBid),
+          endTime: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(), // 72 hours from now
+        }),
+      });
+
+      if (res.ok) {
+        alert("72-hour Collab Auction started!");
+        fetchMyAuctions();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to start auction");
+      }
+    } catch (error) {
+      console.error("Error starting auction:", error);
+    }
+  };
+
+  const handleEndAuction = async (auctionId: string) => {
+    if (!confirm("Are you sure you want to end this auction early?")) return;
     
-    alert("72-hour Collab Auction started!");
+    try {
+      const res = await fetch("/api/auctions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auctionId,
+          status: "COMPLETED",
+        }),
+      });
+
+      if (res.ok) {
+        alert("Auction ended successfully.");
+        fetchMyAuctions();
+      }
+    } catch (error) {
+      console.error("Error ending auction:", error);
+    }
   };
 
   const handleBuyCredits = (amount: number) => {
@@ -341,7 +417,7 @@ export default function Profile() {
             </p>
           </div>
           
-          {!auctionActive && (
+          {!activeAuction && (
             <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl shadow-inner shrink-0">
               <span className={cn("text-sm font-bold px-4 py-2 rounded-xl transition-all", biddingEnabled ? "text-slate-400" : "bg-white text-slate-900 shadow-sm")}>Disabled</span>
               <button onClick={() => setBiddingEnabled(!biddingEnabled)} className={cn("relative w-14 h-8 rounded-full transition-colors duration-200", biddingEnabled ? "bg-amber-400" : "bg-slate-200")}>
@@ -352,7 +428,7 @@ export default function Profile() {
           )}
         </div>
 
-        {biddingEnabled && !auctionActive && (
+        {biddingEnabled && !activeAuction && (
           <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex flex-col md:flex-row items-end gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="space-y-3 w-full md:w-auto flex-1">
               <label className="text-sm font-bold text-slate-900">Starting Bid Amount (Credits)</label>
@@ -373,7 +449,7 @@ export default function Profile() {
           </div>
         )}
 
-        {auctionActive && (
+        {activeAuction && (
           <div className="bg-gradient-to-br from-[#0B3022] to-[#166534] rounded-3xl p-8 text-white shadow-xl relative overflow-hidden animate-in zoom-in-95 duration-500">
             <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
@@ -381,7 +457,7 @@ export default function Profile() {
                 <div className="inline-flex items-center gap-1.5 bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-xs font-bold mb-4 border border-red-500/30">
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> LIVE AUCTION
                 </div>
-                <h3 className="text-4xl font-black">{currentBid} Credits</h3>
+                <h3 className="text-4xl font-black">{activeAuction.currentBid} Credits</h3>
                 <p className="text-white/60 font-medium text-sm">Current Highest Bid</p>
               </div>
               
@@ -394,18 +470,18 @@ export default function Profile() {
                 <div className="hidden md:flex flex-col space-y-3">
                   <p className="text-xs font-bold text-white/80 uppercase tracking-wider">Recent Bidders</p>
                   <div className="flex -space-x-3">
-                    {['2', '8', '4'].map(id => (
-                      <img key={id} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`} className="w-10 h-10 rounded-full border-2 border-[#166534] bg-[#0B3022]" alt="bidder" />
+                    {activeAuction.bids?.map((bid: any) => (
+                      <img key={bid.id} src={bid.bidder.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${bid.bidder.name}`} className="w-10 h-10 rounded-full border-2 border-[#166534] bg-[#0B3022]" alt={bid.bidder.name} />
                     ))}
-                    <div className="w-10 h-10 rounded-full border-2 border-[#166534] bg-white/10 flex items-center justify-center text-xs font-bold backdrop-blur-sm">+12</div>
+                    {(activeAuction.bids?.length || 0) === 0 && <div className="text-xs text-white/40 font-medium italic">No bids yet</div>}
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center relative z-10">
-              <p className="text-sm font-medium text-emerald-200">Starting bid was {userAuction?.startingBid} Credits.</p>
-              <button onClick={() => { if (userAuction) endAuction(userAuction.id); setBiddingEnabled(false); }} className="text-sm font-bold text-white/70 hover:text-white transition-colors">
+              <p className="text-sm font-medium text-emerald-200">Starting bid was {activeAuction.startingBid} Credits.</p>
+              <button onClick={() => handleEndAuction(activeAuction.id)} className="text-sm font-bold text-white/70 hover:text-white transition-colors">
                 End Early
               </button>
             </div>

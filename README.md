@@ -1,40 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meetupbase: Creator Collaboration Platform
 
-## Getting Started
+Meetupbase is a premium, real-time marketplace designed to connect digital creators, influencers, and brands. It facilitates collaboration through a dynamic auction-based bidding system, seamless project management, and real-time communication.
 
-First, run the development server:
+## 🌟 Key Features
 
+### 1. Real-Time Auction & Bidding System
+- **Dynamic Discover Feed**: Browse top creators and available collaborations with powerful search and category filters.
+- **Live Auctions**: 72-hour auction windows with real-time countdown timers.
+- **Instant Bidding**: Place bids using platform credits. The UI updates instantly across all connected clients via WebSockets when a new highest bid is placed.
+
+### 2. Collaboration Management
+- **Centralized Dashboard**: Track all Outgoing Requests, Incoming Requests, and Active Projects in one place.
+- **Workflow Automation**: One-click Accept/Decline logic for incoming requests. Accepted requests automatically transition to "Active Projects."
+- **Credit Protection**: Smart escrow system that locks credits during the pending phase and manages atomic deductions and refunds based on request outcomes.
+
+### 3. Real-Time Messaging
+- **Contextual Chat Threads**: Every active collaboration gets a dedicated messaging thread.
+- **Deep Linking**: Seamlessly navigate from the Collaborations dashboard directly into a specific project's chat.
+- **Live Sync**: Messages are delivered and displayed in real-time, ensuring smooth communication between partners.
+
+### 4. Premium Aesthetic & UX
+- **"Forest Green" Design System**: A cohesive, vibrant, and highly polished UI featuring deep greens, amber accents, and clean typography.
+- **Glassmorphism & Micro-animations**: Modern UI touches including backdrop blurs, soft shadows, hover scaling, and rounded organic shapes (no harsh boxy borders).
+
+## 🛠 Technology Stack
+
+- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & Vanilla CSS (`index.css`)
+- **Database**: PostgreSQL (hosted on [Supabase](https://supabase.com/))
+- **ORM**: [Prisma](https://www.prisma.io/)
+- **Real-Time Engine**: [Pusher](https://pusher.com/) (WebSockets)
+- **Authentication**: Next-Auth v5
+- **Icons**: [Lucide React](https://lucide.dev/)
+
+## 🚀 Getting Started
+
+First, install the dependencies:
+```bash
+npm install
+```
+
+Set up your `.env` file with the necessary credentials:
+```env
+DATABASE_URL="your_supabase_postgres_url"
+NEXT_PUBLIC_PUSHER_APP_KEY="your_pusher_key"
+PUSHER_APP_ID="your_pusher_id"
+PUSHER_SECRET="your_pusher_secret"
+NEXT_PUBLIC_PUSHER_CLUSTER="your_pusher_cluster"
+# Add Next-Auth secrets...
+```
+
+Push the database schema:
+```bash
+npx prisma db push
+```
+
+Run the development server:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Core Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-
-## Deployment Status
-Last deployed to Vercel with Supabase backend on: Sun Apr 26 10:06:14 IST 2026
+- `/app/(dashboard)/discover` - The marketplace and live auction feed.
+- `/app/(dashboard)/collaborations` - Project management and request handling.
+- `/app/(dashboard)/messages` - Real-time chat interface.
+- `/app/api/...` - RESTful API routes handling Prisma transactions and Pusher event triggers.
+- `/lib/pusher.ts` - WebSocket client/server initialization.
+- `/lib/store.ts` - Global state management for user sessions and credits.
+- `/prisma/schema.prisma` - Database models (User, Auction, Bid, Collaboration, Message).

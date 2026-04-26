@@ -2,8 +2,9 @@
 
 import { Users, Clock, Undo2, Gift, CheckCircle2, XCircle, AlertCircle, Coins, Star, ExternalLink, Calendar, TrendingUp, Target, BarChart3, MessageCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 const tabs = ['All', 'Pending', 'Active', 'Completed'];
 
@@ -39,8 +40,51 @@ const collabStats = [
 ];
 
 export default function Collaborations() {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('All');
-  const [incomingList, setIncomingList] = useState(incomingRequests);
+  const [collabs, setCollabs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (session) {
+      fetchCollabs();
+    }
+  }, [session]);
+
+  const fetchCollabs = async () => {
+    try {
+      const res = await fetch("/api/collabs");
+      if (res.ok) {
+        const data = await res.json();
+        setCollabs(data);
+      }
+    } catch (error) {
+      console.error("Error fetching collabs:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (collabId: string, status: string) => {
+    try {
+      const res = await fetch("/api/collabs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collabId, status }),
+      });
+
+      if (res.ok) {
+        fetchCollabs();
+      }
+    } catch (error) {
+      console.error("Error updating collab status:", error);
+    }
+  };
+
+  const outgoingRequests = collabs.filter(c => c.brandId === session?.user?.id && c.status === 'PENDING');
+  const incomingRequests = collabs.filter(c => c.creatorId === session?.user?.id && c.status === 'PENDING');
+  const activeProjects = collabs.filter(c => c.status === 'ACCEPTED');
+  const completedCollabsList = collabs.filter(c => c.status === 'COMPLETED');
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-10 pb-20">
@@ -84,32 +128,30 @@ export default function Collaborations() {
             <span className="bg-primary/5 text-primary px-3 py-1 rounded-full text-xs font-bold">{pendingRequests.length} Pending</span>
           </div>
           <div className="space-y-4">
-            {pendingRequests.map((req) => (
-              <div key={req.id} className="bg-white rounded-[32px] p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <img src={req.avatar} alt={req.creatorName} className="w-12 h-12 rounded-2xl bg-slate-100" />
-                    <div>
-                      <h3 className="font-bold text-slate-900">{req.creatorName}</h3>
-                      <p className="text-xs text-slate-500 font-medium">Sent on {req.date}</p>
+            {outgoingRequests.map((req) => {
+              const partner = req.creator;
+              return (
+                <div key={req.id} className="bg-white rounded-[32px] p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <img src={partner.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.name}`} alt={partner.name} className="w-12 h-12 rounded-2xl bg-slate-100" />
+                      <div>
+                        <h3 className="font-bold text-slate-900">{partner.name}</h3>
+                        <p className="text-xs text-slate-500 font-medium">Sent on {new Date(req.createdAt).toLocaleDateString()}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1.5 text-[#0B3022] font-bold text-sm">
-                      <Coins className="w-4 h-4" /> -{req.cost}
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                    <Clock className="w-4 h-4 text-orange-500" />
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-slate-700">Awaiting Response</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Credits locked until accepted or declined.</p>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
-                  <Clock className="w-4 h-4 text-orange-500" />
-                  <div className="flex-1">
-                    <p className="text-xs font-bold text-slate-700">Auto-refund in {req.daysLeft} days</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Refund: {req.cost * 0.9} Credits (10% platform fee)</p>
-                  </div>
-                  <AlertCircle className="w-4 h-4 text-slate-300" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
+            {outgoingRequests.length === 0 && <p className="text-center py-10 text-slate-400 text-sm italic">No outgoing requests.</p>}
           </div>
         </section>
 
@@ -121,44 +163,31 @@ export default function Collaborations() {
             <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold">Creator Rewards Active</span>
           </div>
           <div className="space-y-4">
-            {incomingList.map((req) => (
-              <div key={req.id} className="bg-white rounded-[32px] p-6 shadow-sm border-l-4 border-l-emerald-500">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <img src={req.avatar} alt={req.senderName} className="w-12 h-12 rounded-2xl bg-slate-100" />
-                    <div>
-                      <h3 className="font-bold text-slate-900">{req.senderName}</h3>
-                      <p className="text-xs text-slate-500 font-medium">Received {req.date}</p>
+            {incomingRequests.map((req) => {
+              const partner = req.brand;
+              return (
+                <div key={req.id} className="bg-white rounded-[32px] p-6 shadow-sm border-l-4 border-l-emerald-500">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <img src={partner.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.name}`} alt={partner.name} className="w-12 h-12 rounded-2xl bg-slate-100" />
+                      <div>
+                        <h3 className="font-bold text-slate-900">{partner.name}</h3>
+                        <p className="text-xs text-slate-500 font-medium">Received {new Date(req.createdAt).toLocaleDateString()}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-2xl">
-                    <div className="flex items-center gap-1.5 font-black text-sm">
-                      <Gift className="w-3.5 h-3.5" /> +{req.reward} Credits
-                    </div>
-                    <p className="text-[9px] font-bold uppercase tracking-tighter opacity-70">Reward share</p>
-                  </div>
-                </div>
-                {req.status === 'accepted' ? (
-                  <div className="grid grid-cols-1 gap-3">
-                    <Link
-                      href={`/messages?contactId=${req.id}&name=${encodeURIComponent(req.senderName)}&avatar=${encodeURIComponent(req.avatar)}&role=${encodeURIComponent(req.role)}`}
-                      className="py-3 bg-[#0B3022] text-white font-bold rounded-2xl text-sm hover:bg-[#166534] transition-colors flex items-center justify-center gap-2 text-center"
-                    >
-                      <MessageCircle className="w-4 h-4" /> Message
-                    </Link>
-                  </div>
-                ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setIncomingList(prev => prev.map(r => r.id === req.id ? { ...r, status: 'accepted' } : r))} className="py-3 bg-emerald-500 text-white font-bold rounded-2xl text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
+                    <button onClick={() => handleUpdateStatus(req.id, 'ACCEPTED')} className="py-3 bg-emerald-500 text-white font-bold rounded-2xl text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
                       <CheckCircle2 className="w-4 h-4" /> Accept
                     </button>
-                    <button onClick={() => setIncomingList(prev => prev.filter(r => r.id !== req.id))} className="py-3 bg-slate-50 text-slate-500 font-bold rounded-2xl text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+                    <button onClick={() => handleUpdateStatus(req.id, 'DECLINED')} className="py-3 bg-slate-50 text-slate-500 font-bold rounded-2xl text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
                       <XCircle className="w-4 h-4" /> Decline
                     </button>
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
+            {incomingRequests.length === 0 && <p className="text-center py-10 text-slate-400 text-sm italic">No incoming requests.</p>}
           </div>
         </section>
       </div>
@@ -169,37 +198,39 @@ export default function Collaborations() {
           <Target className="w-5 h-5 text-[#0B3022]" /> Active Projects
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {activeProjects.map((project) => (
-            <div key={project.id} className="bg-white rounded-[32px] p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-5">
-                <img src={project.avatar} alt={project.partner} className="w-10 h-10 rounded-xl bg-slate-100" />
-                <div className="min-w-0">
-                  <h3 className="font-bold text-slate-900 text-sm truncate">{project.title}</h3>
-                  <p className="text-[11px] text-slate-400 font-medium">with {project.partner}</p>
+          {activeProjects.map((project) => {
+            const partner = project.brandId === session?.user?.id ? project.creator : project.brand;
+            return (
+              <div key={project.id} className="bg-white rounded-[32px] p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-5">
+                  <img src={partner.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.name}`} alt={partner.name} className="w-10 h-10 rounded-xl bg-slate-100" />
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-slate-900 text-sm truncate">Partnership with {partner.name}</h3>
+                    <p className="text-[11px] text-slate-400 font-medium">Project Started</p>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-500">Progress</span>
+                    <span className="text-xs font-black text-[#0B3022]">20%</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#0B3022] to-[#84CC16] rounded-full transition-all" style={{ width: `20%` }} />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                  <Link
+                    href={`/messages?contactId=${project.id}`}
+                    className="text-xs font-bold text-[#0B3022] flex items-center gap-1 hover:underline"
+                  >
+                    <MessageCircle className="w-3 h-3" /> Go to Chat
+                  </Link>
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-600">Active</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-500">Progress</span>
-                  <span className="text-xs font-black text-[#0B3022]">{project.progress}%</span>
-                </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#0B3022] to-[#84CC16] rounded-full transition-all" style={{ width: `${project.progress}%` }} />
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {project.milestones.map((m, i) => (
-                  <span key={i} className={cn("text-[10px] font-bold px-2 py-1 rounded-lg", m.includes('✓') ? 'bg-emerald-50 text-emerald-600' : m.includes('...') ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400')}>{m}</span>
-                ))}
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Due {project.deadline}
-                </span>
-                <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full", project.status === 'In Progress' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600')}>{project.status}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
+          {activeProjects.length === 0 && <p className="text-slate-400 text-sm italic">No active projects yet.</p>}
         </div>
       </section>
 
