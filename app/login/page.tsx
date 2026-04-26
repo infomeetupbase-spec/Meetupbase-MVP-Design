@@ -17,14 +17,23 @@ export default function LoginPage() {
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate network delay
-    setTimeout(() => {
-      login(email);
+    
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      alert('Invalid credentials. Hint: test@example.com / password123');
+      setIsLoading(false);
+    } else {
+      login(email); // Keep Zustand for local UI state if needed
       router.push('/dashboard');
-    }, 800);
+    }
   };
 
   return (

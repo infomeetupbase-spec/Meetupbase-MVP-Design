@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 
 export default {
   providers: [
@@ -12,6 +13,24 @@ export default {
         },
       },
     }),
+    Credentials({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (credentials?.email === "test@example.com" && credentials?.password === "password123") {
+          return {
+            id: "u1",
+            name: "Collab User",
+            email: "test@example.com",
+            image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Test",
+          };
+        }
+        return null;
+      }
+    })
   ],
   pages: {
     signIn: "/login",
